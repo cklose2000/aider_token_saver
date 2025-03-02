@@ -3,7 +3,9 @@
 import os
 import sys
 import logging
-import os
+import time
+import tempfile
+import datetime
 
 # Ensure the log directory exists
 log_dir = os.path.join(os.path.expanduser("~"), ".aider", "rag_logs")
@@ -13,20 +15,6 @@ if not os.path.exists(log_dir):
 # Set up logging
 logging.basicConfig(
     filename=os.path.join(log_dir, "patch_debug.log"),
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-import time
-import tempfile
-import datetime
-
-# Create this file as patch_aider.py in the same directory as aider's installed location
-# or in the same directory as your vector_store.py
-
-# Add near the beginning of patch_aider.py
-import logging
-logging.basicConfig(
-    filename=os.path.join(os.path.expanduser("~"), ".aider", "rag_logs", "patch_debug.log"),
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
