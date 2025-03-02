@@ -335,16 +335,16 @@ class AiderPromptOptimizer:
         self.relevance_threshold = relevance_threshold
         self.recent_interactions = []  # Maintains a small working memory of interactions
 
+        # Initialize logger
+        self.enable_logging = enable_logging
+        if enable_logging:
+            self.logger = RagLogger()
+
     def update_recent_interactions(self, interaction):
         # Append a new interaction and retain only the most recent ones
         self.recent_interactions.append(interaction)
         if len(self.recent_interactions) > self.recent_memory_limit:
             self.recent_interactions = self.recent_interactions[-self.recent_memory_limit:]
-
-        # Initialize logger
-        self.enable_logging = enable_logging
-        if enable_logging:
-            self.logger = RagLogger()
     
     def optimize_messages(self, original_messages, current_query, current_files_context):
         """Optimize the messages by replacing context with semantically relevant retrieved context."""
