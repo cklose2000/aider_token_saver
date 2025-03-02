@@ -5,6 +5,11 @@ import os
 import subprocess
 import tempfile
 import logging
+# Force patch application
+import patch_aider
+if hasattr(patch_aider, 'patch_aider'):
+    result = patch_aider.patch_aider()
+    print(f"Patch applied: {result}")
 
 # Set up logging
 log_dir = os.path.expanduser("~/.aider/rag_logs")
