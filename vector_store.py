@@ -172,6 +172,8 @@ class SimpleVectorStore:
     def get_vector_count(self):
         """Return the number of vectors currently stored."""
         return len(self.documents)
+
+    def search(self, query, top_k=5, doc_type=None):
         """Search for similar documents."""
         logging.debug(f"Searching for query: {query}")
         if not self.documents:
