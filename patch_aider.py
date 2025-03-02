@@ -2,7 +2,9 @@
 
 import os
 import sys
+import time
 import tempfile
+import datetime
 
 # Create this file as patch_aider.py in the same directory as aider's installed location
 # or in the same directory as your vector_store.py
@@ -18,6 +20,15 @@ def patch_aider():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from vector_store import SimpleVectorStore, AiderPromptOptimizer
         
+        # Also import our logger
+        try:
+            from rag_logger import RagLogger
+            logger = RagLogger()
+            print(f"RAG logging enabled at: {logger.log_dir}")
+        except ImportError:
+            logger = None
+            print("RAG logger not found, logging disabled")
+        
         # Initialize the vector store
         home_dir = os.path.expanduser("~")
         aider_dir = os.path.join(home_dir, ".aider")
@@ -25,11 +36,32 @@ def patch_aider():
             os.makedirs(aider_dir)
         
         vector_store = SimpleVectorStore(
-            store_path=os.path.join(aider_dir, "simple_vector_store.json")
+            store_path=os.path.join(aider_dir, "simple_vector_store.json"),
+            enable_logging=logger is not None
         )
         
         # Initialize the optimizer
-        optimizer = AiderPromptOptimizer(vector_store)
+        optimizer = AiderPromptOptimizer(
+            vector_store,
+            enable_logging=logger is not None
+        )
+        
+        # Start a new session if logger exists
+        if logger:
+            logger.current_session_id = int(time.time())
+            logger.session_metrics = {
+                "session_id": logger.current_session_id,
+                "start_time": datetime.datetime.now().isoformat(),
+                "searches": 0,
+                "token_reductions": 0,
+                "total_orig_tokens": 0,
+                "total_opt_tokens": 0,
+                "avg_reduction_pct": 0,
+                "queries_with_relevant_results": 0,
+                "total_queries": 0,
+                "relevance_score": 0
+            }
+            logger._update_session_file()
         
         # Patch OpenAI
         try:
@@ -98,6 +130,14 @@ def patch_aider():
             
         except Exception as e:
             print(f"Failed to patch Anthropic: {e}")
+        
+        # Register shutdown handler to end the session and save stats
+        if logger:
+            import atexit
+            def end_session():
+                logger.end_session()
+                print("RAG session ended, logs saved")
+            atexit.register(end_session)
         
         # Flag that we've applied the patches
         aider.RAG_PATCHED = True
