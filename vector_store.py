@@ -390,7 +390,9 @@ class AiderPromptOptimizer:
         if len(self.recent_interactions) > self.recent_memory_limit:
             self.recent_interactions = self.recent_interactions[-self.recent_memory_limit:]
     
-    def optimize_messages(self, original_messages, current_query, current_files_context):
+    def get_total_tokens_used(self):
+        """Calculate the total number of tokens used in recent interactions."""
+        return sum(len(interaction.split()) for interaction in self.recent_interactions)
         """Optimize the messages by replacing context with semantically relevant retrieved context."""
         try:
             # Count original tokens 
