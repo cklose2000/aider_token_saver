@@ -16,6 +16,9 @@ def analyze_token_reductions(log_path):
             f.write("2025-03-01 10:00:00,10\n")
             f.write("2025-03-01 11:00:00,15\n")
             f.write("2025-03-01 12:00:00,20\n")
+            f.write("2025-03-02 10:00:00,25\n")
+            f.write("2025-03-02 11:00:00,30\n")
+            f.write("2025-03-02 12:00:00,35\n")
 
     df = pd.read_csv(log_path)
 
