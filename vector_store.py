@@ -6,6 +6,8 @@ import math
 import datetime
 from collections import Counter
 import numpy as np
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # Import our logger
 from rag_logger import RagLogger
@@ -239,7 +241,35 @@ class SimpleVectorStore:
         return chunks
 
 
+class FileChangeHandler(FileSystemEventHandler):
+    def __init__(self, vector_store):
+        self.vector_store = vector_store
+
+    def on_modified(self, event):
+        if not event.is_directory:
+            self.vector_store.update_file(event.src_path)
+
+    def on_created(self, event):
+        if not event.is_directory:
+            self.vector_store.update_file(event.src_path)
+
+
 class FileWatcher:
+    def __init__(self, vector_store, directory_to_watch):
+        self.vector_store = vector_store
+        self.directory_to_watch = directory_to_watch
+        self.event_handler = FileChangeHandler(vector_store)
+        self.observer = Observer()
+
+    def start(self):
+        self.observer.schedule(self.event_handler, self.directory_to_watch, recursive=True)
+        self.observer.start()
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            self.observer.stop()
+        self.observer.join()
     def __init__(self, vector_store):
         self.vector_store = vector_store
         self.file_timestamps = {}  # Store file paths and their last modified timestamps
