@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 
 def main():
-    """Create a wrapper that runs Aider with RAG debugging."""
+    """Create a wrapper that runs Aider with RAG enhancement."""
     # Get original args minus script name
     args = sys.argv[1:]
     
@@ -26,7 +26,11 @@ def main():
     if hasattr(patch_aider, 'patch_aider'):
         result = patch_aider.patch_aider()
         print(f"Patch applied: {result}")
-    logging.info("=== Starting RAG-enhanced Aider ===")
+    # Force patch application
+    import patch_aider
+    if hasattr(patch_aider, 'patch_aider'):
+        result = patch_aider.patch_aider()
+        print(f"Patch applied: {result}")
     logging.info(f"Arguments: {args}")
     
     # Create a temp file to tell Aider we want to use RAG
