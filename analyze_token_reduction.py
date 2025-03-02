@@ -12,6 +12,10 @@ def analyze_token_reductions(log_path):
         print(f"The file {log_path} does not exist. Creating a new file.")
         with open(log_path, 'w') as f:
             f.write("Timestamp,Reduction %\n")
+            # Simulate adding some data for testing
+            f.write("2025-03-01 10:00:00,10\n")
+            f.write("2025-03-01 11:00:00,15\n")
+            f.write("2025-03-01 12:00:00,20\n")
 
     df = pd.read_csv(log_path)
 
