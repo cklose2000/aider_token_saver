@@ -1,8 +1,13 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def analyze_token_reductions(log_path):
+    logging.debug(f"Analyzing token reductions from log path: {log_path}")
     log_dir = os.path.dirname(log_path)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -20,7 +25,9 @@ def analyze_token_reductions(log_path):
             f.write("2025-03-02 11:00:00,30\n")
             f.write("2025-03-02 12:00:00,35\n")
 
+    logging.debug("Reading CSV log file...")
     df = pd.read_csv(log_path)
+    logging.debug("CSV log file read successfully.")
 
     print("Token Reduction Summary:")
     print(f"Total Interactions: {len(df)}")

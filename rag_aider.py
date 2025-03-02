@@ -26,7 +26,7 @@ def main():
     # Get original args minus script name
     args = sys.argv[1:]
     
-    # Force patch application
+    logging.debug("Starting main function execution.")
     import patch_aider
     if hasattr(patch_aider, 'patch_aider'):
         result = patch_aider.patch_aider()
@@ -86,7 +86,7 @@ def main():
             logging.info(f"Vector store does not exist before running")
         
         # Run Aider
-        logging.info("Executing Aider...")
+        logging.debug("Executing Aider subprocess call...")
         result = subprocess.call(cmd, env=env)
         logging.info(f"Aider exited with code: {result}")
         

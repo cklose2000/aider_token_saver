@@ -30,6 +30,7 @@ class SimpleVectorStore:
     
     def load_store(self):
         """Load the vector store from disk if it exists."""
+        logging.debug(f"Loading vector store from path: {self.store_path}")
         if os.path.exists(self.store_path):
             try:
                 with open(self.store_path, 'r') as f:
@@ -159,6 +160,7 @@ class SimpleVectorStore:
     
     def search(self, query, top_k=5, doc_type=None):
         """Search for similar documents."""
+        logging.debug(f"Searching for query: {query}")
         if not self.documents:
             return []
         
@@ -264,6 +266,7 @@ class FileWatcher:
     def start(self):
         self.observer.schedule(self.event_handler, self.directory_to_watch, recursive=True)
         self.observer.start()
+        logging.debug(f"Updating file: {file_path}")
         try:
             while True:
                 time.sleep(1)

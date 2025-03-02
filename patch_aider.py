@@ -8,12 +8,12 @@ original_create = client.chat.completions.create
 
 def patched_create(*args, **kwargs):
     """Intercepts OpenAI API calls, optimizes context, and logs usage."""
-    print("\n🔥 [DEBUG] Intercepting API call!")  # ✅ Force debug log to appear
+    logging.debug("🔥 Intercepting API call!")
 
     if "messages" in kwargs:
         messages = kwargs["messages"]
         orig_token_count = sum(len(m.get("content", "").split()) for m in messages)
-        print(f"📜 [DEBUG] Original messages: {messages}")
+        logging.debug(f"📜 Original messages: {messages}")
         print(f"🔢 [DEBUG] Original token count: {orig_token_count}")
 
         # Extract last user query
@@ -30,7 +30,7 @@ def patched_create(*args, **kwargs):
     response = original_create(*args, **kwargs)
 
     # 🔥 Force debug logs before returning response
-    print(f"\n✅ [DEBUG] API Response received!")
+    logging.debug("✅ API Response received!")
     print(f"📡 [DEBUG] Model Used: {response.model}")
     print(f"💬 [DEBUG] Assistant Response: {response.choices[0].message.content}")
     print(f"📊 [DEBUG] Token Usage: {response.usage.total_tokens} total")
