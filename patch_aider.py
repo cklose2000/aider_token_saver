@@ -20,11 +20,15 @@ logging.basicConfig(
 # Then in your patch functions for OpenAI and Anthropic, add:
 def patched_create(*args, **kwargs):
     logging.debug("OpenAI ChatCompletion.create was called")
-    logging.debug("OpenAI ChatCompletion.create was called")
     # [existing code]
     if 'messages' in kwargs:
+        # Get original token count
+        messages = kwargs['messages']
+        orig_token_count = sum(len(m.get("content", "").split()) for m in messages)
         logging.debug(f"Original token count: {orig_token_count}")
         # [existing code]
+        # Get optimized token count
+        opt_token_count = sum(len(m.get("content", "").split()) for m in messages)  # Assuming messages are optimized here
         logging.debug(f"Optimized token count: {opt_token_count}")
     # [rest of the function]
     if 'messages' in kwargs:
