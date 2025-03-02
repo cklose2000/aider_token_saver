@@ -36,8 +36,7 @@ def patch_aider():
             os.makedirs(aider_dir)
         
         vector_store = SimpleVectorStore(
-            store_path=os.path.join(aider_dir, "simple_vector_store.json"),
-            enable_logging=logger is not None
+            store_path=os.path.join(aider_dir, "simple_vector_store.json")
         )
         
         # Initialize the optimizer
