@@ -3,15 +3,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 def analyze_token_reductions(log_path):
+    if not os.path.exists(log_path):
+        print(f"Error: The file {log_path} does not exist.")
+        exit(1)
+
     df = pd.read_csv(log_path)
-    
+
     print("Token Reduction Summary:")
     print(f"Total Interactions: {len(df)}")
     print(f"Average Reduction: {df['Reduction %'].mean():.2f}%")
     print(f"Median Reduction: {df['Reduction %'].median():.2f}%")
     print(f"Max Reduction: {df['Reduction %'].max()}%")
     print(f"Min Reduction: {df['Reduction %'].min()}%")
-    
+
     plt.figure(figsize=(10, 5))
     plt.plot(df['Timestamp'], df['Reduction %'])
     plt.title('Token Reduction Over Time')
