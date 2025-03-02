@@ -3,29 +3,25 @@ import json
 import time
 import re
 import math
+import datetime
 from collections import Counter
 import numpy as np
 
-import os
-import time
-import datetime
-
+# Import our logger
 from rag_logger import RagLogger
 
-# Modifications to the SimpleVectorStore class
 class SimpleVectorStore:
     """A simple vector store that uses TF-IDF and cosine similarity without external dependencies."""
     
     def __init__(self, store_path="simple_vector_store.json", enable_logging=True):
-        # Original initialization
         self.store_path = store_path
         self.documents = []
         self.word_to_idx = {}  # Maps words to their indices in the vector
         self.idx_to_word = {}  # Maps indices to words
         self.idf = {}  # Inverse document frequency
         self.load_store()
-    
-        # Add these lines
+        
+        # Initialize logger
         self.enable_logging = enable_logging
         if enable_logging:
             self.logger = RagLogger()
@@ -159,7 +155,6 @@ class SimpleVectorStore:
         # Save to disk
         self.save_store()
     
-    # Modify the search method to log vector searches
     def search(self, query, top_k=5, doc_type=None):
         """Search for similar documents."""
         if not self.documents:
@@ -196,7 +191,6 @@ class SimpleVectorStore:
         # Sort by similarity (lowest distance first)
         results.sort(key=lambda x: x['distance'])
         
-        # Return top_k results
         # Return top_k results
         final_results = results[:top_k]
         
@@ -326,7 +320,6 @@ class FileWatcher:
         return processed_files
 
 
-# Modifications to the AiderPromptOptimizer class
 class AiderPromptOptimizer:
     def __init__(self, vector_store, recent_memory_limit=3, retrieval_top_k=5, relevance_threshold=0.8, enable_logging=True):
         self.vector_store = vector_store
@@ -334,7 +327,7 @@ class AiderPromptOptimizer:
         self.retrieval_top_k = retrieval_top_k
         self.relevance_threshold = relevance_threshold
         self.recent_interactions = []  # Maintains a small working memory of interactions
-
+        
         # Initialize logger
         self.enable_logging = enable_logging
         if enable_logging:
