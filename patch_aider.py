@@ -9,6 +9,24 @@ import datetime
 # Create this file as patch_aider.py in the same directory as aider's installed location
 # or in the same directory as your vector_store.py
 
+# Add near the beginning of patch_aider.py
+import logging
+logging.basicConfig(
+    filename=os.path.join(os.path.expanduser("~"), ".aider", "rag_logs", "patch_debug.log"),
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# Then in your patch functions for OpenAI and Anthropic, add:
+def patched_create(*args, **kwargs):
+    logging.debug("OpenAI ChatCompletion.create was called")
+    # [existing code]
+    if 'messages' in kwargs:
+        logging.debug(f"Original token count: {orig_token_count}")
+        # [existing code]
+        logging.debug(f"Optimized token count: {opt_token_count}")
+    # [rest of the function]
+
 def patch_aider():
     """Apply monkey patches to aider to add RAG functionality."""
     try:
