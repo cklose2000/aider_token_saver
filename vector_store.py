@@ -393,6 +393,8 @@ class AiderPromptOptimizer:
     def get_total_tokens_used(self):
         """Calculate the total number of tokens used in recent interactions."""
         return sum(len(interaction.split()) for interaction in self.recent_interactions)
+
+    def optimize_messages(self, original_messages, current_query, current_files_context):
         """Optimize the messages by replacing context with semantically relevant retrieved context."""
         try:
             # Count original tokens 
