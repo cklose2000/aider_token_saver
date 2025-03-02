@@ -83,7 +83,7 @@ try:
             messages = kwargs['messages']
             # Calculate original token count
             orig_token_count = sum(len(m.get("content", "").split()) for m in messages)
-            print(f"[DEBUG] Original token count: {orig_token_count}")
+            print(f"[DEBUG] Original token count: {orig_token_count} tokens")
 
             # Extract the current query from the last user message
             user_messages = [m for m in messages if m.get("role") == "user"]
@@ -103,12 +103,12 @@ try:
                 
                 # Calculate optimized token count.
                 opt_token_count = sum(len(m.get("content", "").split()) for m in optimized_messages)
-                print(f"[DEBUG] Optimized token count: {opt_token_count}")
+                print(f"[DEBUG] Optimized token count: {opt_token_count} tokens")
 
                 # Print the token reduction if any.
                 if orig_token_count > 0 and orig_token_count != opt_token_count:
                     reduction_percent = int((1 - opt_token_count / orig_token_count) * 100)
-                    print(f"[DEBUG] Token reduction: {orig_token_count} -> {opt_token_count} (approx. {reduction_percent}% saved)")
+                    print(f"[DEBUG] Token reduction: {orig_token_count} tokens -> {opt_token_count} tokens (approx. {reduction_percent}% saved)")
                 else:
                     print("[DEBUG] No token reduction achieved.")
 
