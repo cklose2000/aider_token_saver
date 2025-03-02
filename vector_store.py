@@ -24,8 +24,8 @@ class SimpleVectorStore:
         self.idx_to_word = {}  # Maps indices to words
         self.idf = {}  # Inverse document frequency
         self.load_store()
-        
-        # Initialize logger
+    
+        # Add these lines
         self.enable_logging = enable_logging
         if enable_logging:
             self.logger = RagLogger()
