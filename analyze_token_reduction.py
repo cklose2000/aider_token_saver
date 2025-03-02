@@ -3,6 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 def analyze_token_reductions(log_path):
+    log_dir = os.path.dirname(log_path)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+        print(f"Created directory: {log_dir}")
+
     if not os.path.exists(log_path):
         print(f"Error: The file {log_path} does not exist.")
         exit(1)
