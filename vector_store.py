@@ -6,16 +6,29 @@ import math
 from collections import Counter
 import numpy as np
 
+import os
+import time
+import datetime
+
+from rag_logger import RagLogger
+
+# Modifications to the SimpleVectorStore class
 class SimpleVectorStore:
     """A simple vector store that uses TF-IDF and cosine similarity without external dependencies."""
     
-    def __init__(self, store_path="simple_vector_store.json"):
+    def __init__(self, store_path="simple_vector_store.json", enable_logging=True):
+        # Original initialization
         self.store_path = store_path
         self.documents = []
         self.word_to_idx = {}  # Maps words to their indices in the vector
         self.idx_to_word = {}  # Maps indices to words
         self.idf = {}  # Inverse document frequency
         self.load_store()
+        
+        # Initialize logger
+        self.enable_logging = enable_logging
+        if enable_logging:
+            self.logger = RagLogger()
     
     def load_store(self):
         """Load the vector store from disk if it exists."""
@@ -146,10 +159,14 @@ class SimpleVectorStore:
         # Save to disk
         self.save_store()
     
+    # Modify the search method to log vector searches
     def search(self, query, top_k=5, doc_type=None):
         """Search for similar documents."""
         if not self.documents:
             return []
+        
+        # Start timing
+        start_time = time.time()
         
         # Compute query vector
         query_vector = self.compute_tfidf_vector(query)
@@ -180,7 +197,18 @@ class SimpleVectorStore:
         results.sort(key=lambda x: x['distance'])
         
         # Return top_k results
-        return results[:top_k]
+        # Return top_k results
+        final_results = results[:top_k]
+        
+        # End timing
+        end_time = time.time()
+        search_time_ms = (end_time - start_time) * 1000
+        
+        # Log search
+        if self.enable_logging:
+            self.logger.log_vector_search(query, final_results, search_time_ms)
+        
+        return final_results
     
     def chunk_code_file(self, file_path, file_content):
         """Split code file into semantic chunks."""
@@ -298,8 +326,9 @@ class FileWatcher:
         return processed_files
 
 
+# Modifications to the AiderPromptOptimizer class
 class AiderPromptOptimizer:
-    def __init__(self, vector_store, recent_memory_limit=3, retrieval_top_k=5, relevance_threshold=0.8):
+    def __init__(self, vector_store, recent_memory_limit=3, retrieval_top_k=5, relevance_threshold=0.8, enable_logging=True):
         self.vector_store = vector_store
         self.recent_memory_limit = recent_memory_limit
         self.retrieval_top_k = retrieval_top_k
@@ -312,9 +341,17 @@ class AiderPromptOptimizer:
         if len(self.recent_interactions) > self.recent_memory_limit:
             self.recent_interactions = self.recent_interactions[-self.recent_memory_limit:]
 
+        # Initialize logger
+        self.enable_logging = enable_logging
+        if enable_logging:
+            self.logger = RagLogger()
+    
     def optimize_messages(self, original_messages, current_query, current_files_context):
         """Optimize the messages by replacing context with semantically relevant retrieved context."""
         try:
+            # Count original tokens 
+            orig_token_count = sum(len(m.get("content", "").split()) for m in original_messages)
+            
             # Preserve existing system messages and recent exchanges (user/assistant)
             system_messages = [m for m in original_messages if m.get('role') == 'system']
             
@@ -368,6 +405,32 @@ class AiderPromptOptimizer:
                     'role': 'system',
                     'content': context_content
                 })
+            
+            # Count optimized tokens 
+            opt_token_count = sum(len(m.get("content", "").split()) for m in optimized_messages)
+            
+            # Log token reduction
+            if self.enable_logging and orig_token_count > 0:
+                self.logger.log_token_reduction(orig_token_count, opt_token_count)
+                
+                # Calculate a usefulness score based on token reduction and relevance
+                if relevant_contexts:
+                    # Calculate average distance (lower is better)
+                    avg_distance = sum(ctx.get('distance', 1.0) for ctx in relevant_contexts) / len(relevant_contexts)
+                    # Convert to score (0-1, higher is better)
+                    relevance_score = 1.0 - avg_distance
+                    
+                    # Calculate usefulness as a function of reduction and relevance
+                    reduction_ratio = (orig_token_count - opt_token_count) / orig_token_count if orig_token_count > 0 else 0
+                    usefulness_score = (0.7 * relevance_score + 0.3 * reduction_ratio)
+                    
+                    # Log retrieval metrics
+                    self.logger.log_retrieval_metrics(
+                        current_query, 
+                        relevant_contexts, 
+                        usefulness_score,
+                        "auto"
+                    )
             
             return optimized_messages
         except Exception as e:
