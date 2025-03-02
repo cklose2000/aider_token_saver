@@ -3,6 +3,7 @@ import json
 import time
 import re
 import math
+import logging
 import datetime
 from collections import Counter
 import numpy as np
@@ -10,7 +11,17 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # Import our logger
-from rag_logger import RagLogger
+try:
+    from rag_logger import RagLogger
+except ImportError:
+    # Define a fallback logger if rag_logger.py is missing
+    class RagLogger:
+        def log_vector_search(self, *args, **kwargs):
+            pass
+        def log_token_reduction(self, *args, **kwargs):
+            pass
+        def log_retrieval_metrics(self, *args, **kwargs):
+            pass
 
 class SimpleVectorStore:
     """A simple vector store that uses TF-IDF and cosine similarity without external dependencies."""
@@ -266,19 +277,22 @@ class FileWatcher:
     def start(self):
         self.observer.schedule(self.event_handler, self.directory_to_watch, recursive=True)
         self.observer.start()
-        logging.debug(f"Updating file: {file_path}")
         try:
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
             self.observer.stop()
         self.observer.join()
+
+
+class FileProcessor:
     def __init__(self, vector_store):
         self.vector_store = vector_store
         self.file_timestamps = {}  # Store file paths and their last modified timestamps
         
     def update_file(self, file_path):
         """Process a file that has been created or modified."""
+        logging.debug(f"Updating file: {file_path}")
         try:
             if not os.path.exists(file_path):
                 return False
