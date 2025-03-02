@@ -9,8 +9,9 @@ def analyze_token_reductions(log_path):
         print(f"Created directory: {log_dir}")
 
     if not os.path.exists(log_path):
-        print(f"Error: The file {log_path} does not exist.")
-        exit(1)
+        print(f"The file {log_path} does not exist. Creating a new file.")
+        with open(log_path, 'w') as f:
+            f.write("Timestamp,Reduction %\n")
 
     df = pd.read_csv(log_path)
 
