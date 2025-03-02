@@ -1,0 +1,5 @@
+aider-chat>=0.18.0
+tokenizers>=0.21,<0.22
+transformers>=4.34.0
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.2

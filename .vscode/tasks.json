@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "RAG-Enhanced Aider",
+            "type": "shell",
+            "command": "${workspaceFolder}/rag_aider.py",
+            "args": [
+                "--model",
+                "gpt-4o"
+            ],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
