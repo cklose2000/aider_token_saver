@@ -11,6 +11,8 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from transformers import AutoTokenizer, AutoModel
 import torch
+from sklearn.decomposition import PCA
+import hashlib
 
 # Import our logger
 try:
@@ -42,6 +44,9 @@ class SimpleVectorStore:
         self.enable_logging = enable_logging
         if enable_logging:
             self.logger = RagLogger()
+        
+        self.file_vectors = {}  # Store file vectors by path
+        self.file_hashes = {}   # Store file hashes to detect changes
     
     def load_store(self):
         """Load the vector store from disk if it exists."""
@@ -184,55 +189,14 @@ class SimpleVectorStore:
         """Return the number of vectors currently stored."""
         return len(self.documents)
 
-    def search(self, query, top_k=5, doc_type=None):
-        """Search for similar documents."""
-        logging.debug(f"Searching for query: {query}")
-        if not self.documents:
-            return []
-        
-        # Start timing
-        start_time = time.time()
-        
-        # Compute query vector
-        query_vector = self.compute_tfidf_vector(query)
-        
-        # Compute similarity with all documents
-        results = []
-        for doc in self.documents:
-            # Skip deleted documents
-            if doc.get('metadata', {}).get('deleted', False):
-                continue
-            
-            # Apply document type filter if specified
-            if doc_type and doc.get('metadata', {}).get('type') != doc_type:
-                continue
-            
-            # Compute document vector
-            doc_vector = self.compute_tfidf_vector(doc['content'])
-            
-            # Compute similarity
-            similarity = self.cosine_similarity(query_vector, doc_vector)
-            
-            # Add to results
-            result = dict(doc)
-            result['distance'] = 1.0 - similarity  # Convert to distance (lower is better)
-            results.append(result)
-        
-        # Sort by similarity (lowest distance first)
-        results.sort(key=lambda x: x['distance'])
-        
-        # Return top_k results
-        final_results = results[:top_k]
-        
-        # End timing
-        end_time = time.time()
-        search_time_ms = (end_time - start_time) * 1000
-        
-        # Log search
-        if self.enable_logging:
-            self.logger.log_vector_search(query, final_results, search_time_ms)
-        
-        return final_results
+    def search(self, query, top_k=5):
+        # Use BERT for semantic understanding
+        bert_results = self.search_bert(query, top_k=top_k*2)
+        # Use TF-IDF for keyword matching
+        tfidf_results = self.search_tfidf(query, top_k=top_k*2)
+        # Combine results with weights
+        combined_results = self.merge_results(bert_results, tfidf_results)
+        return combined_results[:top_k]
     
     def chunk_code_file(self, file_path, file_content):
         """Split code file into semantic chunks."""
@@ -267,6 +231,78 @@ class SimpleVectorStore:
             })
         
         return chunks
+
+    def compress_vector(self, vector, n_components=100):
+        """Compress vector while preserving semantic relationships"""
+        if not hasattr(self, 'pca'):
+            self.pca = PCA(n_components=n_components)
+            self.pca.fit([vector])  # Would need to batch train this
+        return self.pca.transform([vector])[0]
+
+    def smart_chunk_content(self, content, max_chunk_size=512):
+        """Break content into semantic chunks before vectorization"""
+        chunks = []
+        # Use natural boundaries like function definitions, class declarations
+        # or paragraph breaks to create chunks
+        return chunks
+
+    def retrieve_relevant_context(self, query_vector, threshold=0.7):
+        """Retrieve only the most relevant pre-vectorized content"""
+        relevant_chunks = []
+        for doc in self.documents:
+            similarity = self.cosine_similarity(query_vector, doc['bert_vector'])
+            if similarity > threshold:
+                relevant_chunks.append(doc['content'])
+        return relevant_chunks
+
+    def monitor_vector_stats(self):
+        """Monitor vector store performance"""
+        stats = {
+            'total_vectors': len(self.documents),
+            'avg_vector_size': np.mean([len(d.get('bert_vector', [])) for d in self.documents]),
+            'storage_size': os.path.getsize(self.store_path),
+            'retrieval_times': self.retrieval_times  # Need to track this
+        }
+        return stats
+
+    def process_file_for_context(self, file_path, content):
+        """Process a file for context window, using vectorization if possible"""
+        # Generate hash of current content
+        current_hash = hashlib.md5(content.encode()).hexdigest()
+        
+        # Check if we have a cached vector and if file hasn't changed
+        if (file_path in self.file_vectors and 
+            file_path in self.file_hashes and 
+            self.file_hashes[file_path] == current_hash):
+            # Return compressed vector representation
+            return {
+                'type': 'vector',
+                'vector': self.file_vectors[file_path],
+                'file_path': file_path,
+                'summary': self.generate_file_summary(content)
+            }
+        
+        # If file is new or changed, store its vector and hash
+        vector = self.vectorize_text(content)
+        self.file_vectors[file_path] = vector
+        self.file_hashes[file_path] = current_hash
+        
+        # Return full content for first time or when changed
+        return {
+            'type': 'full',
+            'content': content,
+            'file_path': file_path
+        }
+    
+    def generate_file_summary(self, content, max_length=100):
+        """Generate a brief summary of the file content"""
+        # Extract key elements like function names, class definitions
+        # This helps maintain context while using much fewer tokens
+        summary_lines = []
+        for line in content.split('\n'):
+            if re.match(r'^(def |class |import )', line.strip()):
+                summary_lines.append(line.strip())
+        return '\n'.join(summary_lines[:max_length])
 
 
 class FileChangeHandler(FileSystemEventHandler):
@@ -612,3 +648,18 @@ def optimize_messages(self, original_messages, current_query, current_files_cont
 
 # For compatibility with the wrapper script
 VectorStore = SimpleVectorStore
+
+class MessageOptimizer:
+    def preprocess_message(self, message):
+        # 1. Break into chunks
+        chunks = self.smart_chunk_content(message)
+        
+        # 2. Pre-vectorize each chunk
+        vectors = [self.vectorize_text(chunk) for chunk in chunks]
+        
+        # 3. Store vectors for future use
+        return {
+            'original': message,
+            'chunks': chunks,
+            'vectors': vectors
+        }

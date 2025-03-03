@@ -123,8 +123,9 @@ except Exception as e:
             pass
     
     class AiderPromptOptimizer:
-        def __init__(self, vector_store):
-            pass
+        def __init__(self, vector_store, relevance_threshold=0.6):
+            self.vector_store = vector_store
+            self.relevance_threshold = relevance_threshold
         def update_recent_interactions(self, interaction):
             pass
         def vectorize_messages(self, messages):
@@ -307,3 +308,20 @@ def patch_aider():
     log_direct(f"Vector store contains {doc_count} documents")
     
     return "RAG optimization patch successfully applied"
+
+def construct_context_message(self, files):
+    """Construct context message with vectorization optimization"""
+    context_parts = []
+    
+    for file_path, content in files.items():
+        # Get vectorized or full content based on file state
+        processed = self.vector_store.process_file_for_context(file_path, content)
+        
+        if processed['type'] == 'vector':
+            # For vectorized content, include only summary
+            context_parts.append(f"File {file_path} (vectorized):\n{processed['summary']}")
+        else:
+            # For new/changed files, include full content
+            context_parts.append(f"File {file_path}:\n{processed['content']}")
+    
+    return '\n\n'.join(context_parts)
