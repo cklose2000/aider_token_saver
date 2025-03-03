@@ -372,7 +372,63 @@ class FileProcessor:
 
 
 class AiderPromptOptimizer:
-    def __init__(self, vector_store, recent_memory_limit=3, retrieval_top_k=5, relevance_threshold=0.8, enable_logging=True):
+    def optimize_messages(self, original_messages, current_query, current_files_context):
+        """Simple optimization method to reduce tokens.""" 
+        # Just keep system messages and the current query
+        system_messages = [m for m in original_messages if m.get('role') == 'system']
+        user_messages = [m for m in original_messages if m.get('role') == 'user']
+        
+        optimized = system_messages.copy()
+        if user_messages:
+            optimized.append(user_messages[-1])
+        return optimized
+    
+    def optimize_messages(self, original_messages, current_query, current_files_context):
+        """Simple optimization method to reduce tokens."""
+        # Just keep system messages and the current query
+        system_messages = [m for m in original_messages if m.get('role') == 'system']
+        user_messages = [m for m in original_messages if m.get('role') == 'user']
+        
+        # Create optimized message list
+        optimized = system_messages.copy()
+        
+        # Always add the current query (last user message)
+        if user_messages:
+            optimized.append(user_messages[-1])
+        
+        return optimized
+
+    def optimize_messages(self, original_messages, current_query, current_files_context):
+        """Simple optimization method to reduce tokens."""
+        # Just keep system messages and the current query
+        system_messages = [m for m in original_messages if m.get('role') == 'system']
+        user_messages = [m for m in original_messages if m.get('role') == 'user']
+        
+        # Create optimized message list
+        optimized = system_messages.copy()
+        
+        # Always add the current query (last user message)
+        if user_messages:
+            optimized.append(user_messages[-1])
+        
+        return optimized
+
+    def optimize_messages(self, original_messages, current_query, current_files_context):
+        """Simple optimization method to reduce tokens."""
+        # Just keep system messages and the current query
+        system_messages = [m for m in original_messages if m.get('role') == 'system']
+        user_messages = [m for m in original_messages if m.get('role') == 'user']
+        
+        # Create optimized message list
+        optimized = system_messages.copy()
+        
+        # Always add the current query (last user message)
+        if user_messages:
+            optimized.append(user_messages[-1])
+        
+        return optimized
+
+    def __init__(self, vector_store, recent_memory_limit=3, retrieval_top_k=5, relevance_threshold=0.7, enable_logging=True):
         self.vector_store = vector_store
         self.recent_memory_limit = recent_memory_limit
         self.retrieval_top_k = retrieval_top_k
@@ -394,96 +450,154 @@ class AiderPromptOptimizer:
         """Calculate the total number of tokens used in recent interactions."""
         return sum(len(interaction.split()) for interaction in self.recent_interactions)
 
-    def optimize_messages(self, original_messages, current_query, current_files_context):
-        """Optimize the messages by replacing context with semantically relevant retrieved context."""
-        try:
-            # Count original tokens 
-            orig_token_count = sum(len(m.get("content", "").split()) for m in original_messages)
+def optimize_messages(self, original_messages, current_query, current_files_context):
+    """Optimize the messages by REPLACING context with semantically relevant retrieved context."""
+    try:
+        # Count original tokens 
+        orig_token_count = sum(len(m.get("content", "").split()) for m in original_messages)
+        
+        # 1. Identify different message types
+        system_instruction_messages = []
+        user_messages = []
+        assistant_messages = []
+        files_context_message = None
+        
+        # Categorize messages
+        for m in original_messages:
+            role = m.get('role', '')
+            content = m.get('content', '')
             
-            # Preserve existing system messages and recent exchanges (user/assistant)
-            system_messages = [m for m in original_messages if m.get('role') == 'system']
+            # Keep essential system instructions (likely at the beginning)
+            if role == 'system' and not files_context_message:
+                if "Current Files:" in content:
+                    files_context_message = m
+                else:
+                    system_instruction_messages.append(m)
+            elif role == 'user':
+                user_messages.append(m)
+            elif role == 'assistant':
+                assistant_messages.append(m)
+        
+        # 2. Keep only most recent exchanges to preserve conversation flow
+        # At most keep the last 1-2 exchanges before the current query
+        latest_exchanges = []
+        if len(user_messages) > 1:  # If there are previous user messages
+            # Handle the case where we have alternating user/assistant messages
+            recent_exchanges_count = min(self.recent_memory_limit, len(user_messages) - 1)
             
-            # Keep a minimum of recent exchanges
-            recent_exchanges = []
-            user_assistant_pairs = []
+            for i in range(recent_exchanges_count):
+                user_idx = len(user_messages) - 2 - i  # Second-to-last user message, going backward
+                if user_idx >= 0:
+                    latest_exchanges.append(user_messages[user_idx])
+                    # Find corresponding assistant message
+                    assistant_idx = min(user_idx, len(assistant_messages) - 1)
+                    if assistant_idx >= 0:
+                        latest_exchanges.append(assistant_messages[assistant_idx])
             
-            # Group user/assistant messages into pairs
-            for i in range(len(original_messages) - 1):
-                if (original_messages[i].get('role') == 'user' and 
-                    original_messages[i+1].get('role') == 'assistant'):
-                    user_assistant_pairs.append((original_messages[i], original_messages[i+1]))
+            # Reverse to maintain chronological order
+            latest_exchanges.reverse()
+        
+        # 3. Always include the most recent user message (current query)
+        latest_exchanges.append(user_messages[-1])
+        
+        # 4. Retrieve relevant context
+        retrieved_contexts = self.vector_store.search(current_query, top_k=self.retrieval_top_k)
+        
+        # 5. Filter by relevance threshold - be more selective!
+        relevant_contexts = [
+            ctx for ctx in retrieved_contexts 
+            if ctx.get('distance', 1.0) < self.relevance_threshold
+        ]
+        
+        # 6. Initialize optimized message sequence with essential components
+        optimized_messages = system_instruction_messages.copy()
+        
+        # 7. Add context from vector store AS A REPLACEMENT for old context
+        # Only if we have relevant contexts and they're better than what we have
+        if relevant_contexts:
+            # Build a single system message with retrieved context instead of multiple history messages
+            context_lines = ["Relevant context from previous interactions:"]
             
-            # Keep the most recent pairs
-            if user_assistant_pairs:
-                recent_exchanges = [msg for pair in user_assistant_pairs[-self.recent_memory_limit:] for msg in pair]
+            # Limit total context to avoid making things worse
+            total_context_size = 0
+            max_context_size = 1500  # Adjust based on your typical message sizes
             
-            # Always include the most recent user message if it exists
-            if original_messages and original_messages[-1].get('role') == 'user':
-                if not recent_exchanges or recent_exchanges[-1] != original_messages[-1]:
-                    recent_exchanges.append(original_messages[-1])
+            for ctx in relevant_contexts:
+                ctx_text = ctx.get('content', '')
+                # Truncate each context if needed
+                if len(ctx_text) > 300:
+                    ctx_text = ctx_text[:300] + "..."
+                
+                # Check if adding this would exceed our budget
+                if total_context_size + len(ctx_text) > max_context_size:
+                    break
+                    
+                ctx_type = ctx.get('metadata', {}).get('type', 'context')
+                ctx_file = ctx.get('metadata', {}).get('file', 'unknown')
+                
+                context_lines.append(f"--- {ctx_type} from {ctx_file} ---")
+                context_lines.append(ctx_text)
+                context_lines.append("")  # Blank line for spacing
+                
+                total_context_size += len(ctx_text)
             
-            # Retrieve relevant context from the vector store
-            retrieved_contexts = self.vector_store.search(current_query, top_k=self.retrieval_top_k)
-            relevant_contexts = [
-                ctx for ctx in retrieved_contexts 
-                if ctx.get('distance', 1.0) < self.relevance_threshold
-            ]
-            
-            # Start with preserved system messages and recent interactions
-            optimized_messages = system_messages + recent_exchanges
-            
-            # Append current file context as a system message, if available
-            if current_files_context:
-                optimized_messages.append({
-                    'role': 'system',
-                    'content': f"Current Files Context:\n{current_files_context}"
-                })
-            
-            # Append retrieved relevant context as a separate system message
-            if relevant_contexts:
-                context_lines = ["Relevant context from previous interactions:"]
-                for ctx in relevant_contexts:
-                    ctx_type = ctx.get('metadata', {}).get('type', 'context')
-                    ctx_file = ctx.get('metadata', {}).get('file', 'unknown')
-                    context_lines.append(f"--- {ctx_type} from {ctx_file} ---")
-                    context_lines.append(ctx.get('content', ''))
-                    context_lines.append("")  # Blank line for spacing
+            # Only add this if we have meaningful context
+            if len(context_lines) > 1:
                 context_content = "\n".join(context_lines)
                 optimized_messages.append({
                     'role': 'system',
                     'content': context_content
                 })
-            
-            # Count optimized tokens 
-            opt_token_count = sum(len(m.get("content", "").split()) for m in optimized_messages)
-            
-            # Log token reduction
-            if self.enable_logging and orig_token_count > 0:
-                self.logger.log_token_reduction(orig_token_count, opt_token_count)
-                
-                # Calculate a usefulness score based on token reduction and relevance
-                if relevant_contexts:
-                    # Calculate average distance (lower is better)
-                    avg_distance = sum(ctx.get('distance', 1.0) for ctx in relevant_contexts) / len(relevant_contexts)
-                    # Convert to score (0-1, higher is better)
-                    relevance_score = 1.0 - avg_distance
-                    
-                    # Calculate usefulness as a function of reduction and relevance
-                    reduction_ratio = (orig_token_count - opt_token_count) / orig_token_count if orig_token_count > 0 else 0
-                    usefulness_score = (0.7 * relevance_score + 0.3 * reduction_ratio)
-                    
-                    # Log retrieval metrics
-                    self.logger.log_retrieval_metrics(
-                        current_query, 
-                        relevant_contexts, 
-                        usefulness_score,
-                        "auto"
-                    )
-            
+        
+        # 8. Add recent exchanges (limited history)
+        optimized_messages.extend(latest_exchanges)
+        
+        # 9. Add current files context if available (needed for coding context)
+        if current_files_context and len(current_files_context) > 0:
+            # If current files context is very large, consider truncating it
+            if len(current_files_context) > 2000:
+                # Extract the file names and only include the most recent or relevant ones
+                import re
+                files = re.findall(r'```\w+\s+([\w\d./_-]+)', current_files_context)
+                if files:
+                    # Create a simpler context that just lists the files
+                    simplified_context = "Current Files Context (abbreviated):\n" + "\n".join(files[:5])
+                    optimized_messages.append({
+                        'role': 'system',
+                        'content': simplified_context
+                    })
+            else:
+                optimized_messages.append({
+                    'role': 'system',
+                    'content': current_files_context
+                })
+        
+        # Count optimized tokens 
+        opt_token_count = sum(len(m.get("content", "").split()) for m in optimized_messages)
+        
+        # Only return optimized messages if they're actually smaller
+        if opt_token_count < orig_token_count:
             return optimized_messages
-        except Exception as e:
-            print(f"Error optimizing messages: {e}")
-            return original_messages  # Fall back to original messages on error
+        else:
+            # If optimization didn't reduce tokens, only keep essential messages
+            essential_messages = system_instruction_messages.copy()
+            
+            # Keep only the current query
+            essential_messages.append(user_messages[-1])
+            
+            # Add abbreviated context if available
+            if relevant_contexts:
+                brief_context = "Relevant context (abbreviated): " + relevant_contexts[0].get('content', '')[:300]
+                essential_messages.append({
+                    'role': 'system',
+                    'content': brief_context
+                })
+                
+            return essential_messages
+            
+    except Exception as e:
+        print(f"Error optimizing messages: {e}")
+        return original_messages  # Fall back to original messages on error
 
 # For compatibility with the wrapper script
 VectorStore = SimpleVectorStore
