@@ -21,7 +21,7 @@ def check_token_logs():
     # Read log file
     try:
         df = pd.read_csv(token_log_path)
-        print(f"✅ Successfully read token log file")
+        print(f"Successfully read token log file")
         print(f"📈 Number of token reduction entries: {len(df)}")
         
         if len(df) > 0:
@@ -31,7 +31,7 @@ def check_token_logs():
         else:
             print("❌ No token reduction entries found")
     except Exception as e:
-        print(f"❌ Error reading token log file: {e}")
+        print(f"Error reading token log file: {e}")
         # Show file contents
         try:
             with open(token_log_path, 'r') as f:
