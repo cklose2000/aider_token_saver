@@ -107,7 +107,7 @@ except ImportError:
 
 # Import vector store
 try:
-    from vector_store import SimpleVectorStore, AiderPromptOptimizer
+    from vector_store import SimpleVectorStore, AiderPromptOptimizer, vectorize_text
     logging.info("Successfully imported vector store components")
     log_direct("Imported vector store components")
 except Exception as e:
@@ -127,7 +127,9 @@ except Exception as e:
             pass
         def update_recent_interactions(self, interaction):
             pass
-        def optimize_messages(self, original_messages, current_query, current_files_context):
+        def vectorize_messages(self, messages):
+            """Vectorize each message content."""
+            return [vectorize_text(m.get("content", "")) for m in messages]
             return original_messages
 
 # Initialize OpenAI client

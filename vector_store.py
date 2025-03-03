@@ -9,6 +9,8 @@ from collections import Counter
 import numpy as np
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from transformers import AutoTokenizer, AutoModel
+import torch
 
 # Import our logger
 try:
@@ -26,12 +28,14 @@ except ImportError:
 class SimpleVectorStore:
     """A simple vector store that uses TF-IDF and cosine similarity without external dependencies."""
     
-    def __init__(self, store_path="simple_vector_store.json", enable_logging=True):
+    def __init__(self, store_path="simple_vector_store.json", enable_logging=True, model_name="bert-base-uncased"):
         self.store_path = store_path
         self.documents = []
         self.word_to_idx = {}  # Maps words to their indices in the vector
         self.idx_to_word = {}  # Maps indices to words
         self.idf = {}  # Inverse document frequency
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = AutoModel.from_pretrained(model_name)
         self.load_store()
         
         # Initialize logger
@@ -135,7 +139,12 @@ class SimpleVectorStore:
         
         return dot_product / (magnitude1 * magnitude2)
     
-    def add_document(self, doc_id, content, metadata):
+    def vectorize_text(self, text):
+        """Vectorize text using a pre-trained model."""
+        inputs = self.tokenizer(text, return_tensors="pt", truncation=True, padding=True)
+        with torch.no_grad():
+            outputs = self.model(**inputs)
+        return outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
         """Add a document to the vector store."""
         # Tokenize the content
         tokens = self.tokenize(content)
