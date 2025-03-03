@@ -16,7 +16,7 @@ def check_token_logs():
     
     # Check file size
     file_size = os.path.getsize(token_log_path)
-    print(f"📊 Token log file size: {file_size} bytes")
+    print(f"Token log file size: {file_size} bytes")
     
     # Read log file
     try:
