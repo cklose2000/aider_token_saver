@@ -53,7 +53,7 @@ def check_vector_store():
     
     # Check file size
     file_size = os.path.getsize(vector_store_path)
-    print(f"📊 Vector store file size: {file_size} bytes")
+    print(f"Vector store file size: {file_size} bytes")
     
     # Read vector store
     try:
