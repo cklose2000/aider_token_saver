@@ -101,7 +101,7 @@ def analyze_results():
     # Load token reduction data
     try:
         df = pd.read_csv(token_log_path)
-        print(f"✅ Loaded token reduction data with {len(df)} entries")
+        print(f"Loaded token reduction data with {len(df)} entries")
         
         if len(df) < 2:
             print("❌ Not enough data for meaningful analysis")
@@ -193,7 +193,7 @@ def analyze_results():
         
         return True
     except Exception as e:
-        print(f"❌ Error analyzing token reduction data: {e}")
+        print(f"Error analyzing token reduction data: {e}")
         import traceback
         traceback.print_exc()
         return False
