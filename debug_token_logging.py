@@ -11,7 +11,7 @@ def check_token_logs():
     
     print(f"\n==== Token Reduction Log Analysis ====")
     if not os.path.exists(token_log_path):
-        print(f"❌ Token log file does not exist: {token_log_path}")
+        print(f"Token log file does not exist: {token_log_path}")
         return False
     
     # Check file size
@@ -22,14 +22,14 @@ def check_token_logs():
     try:
         df = pd.read_csv(token_log_path)
         print(f"Successfully read token log file")
-        print(f"📈 Number of token reduction entries: {len(df)}")
+        print(f"Number of token reduction entries: {len(df)}")
         
         if len(df) > 0:
-            print(f"📊 Average reduction: {df['Reduction %'].mean():.2f}%")
-            print(f"📊 Most recent reductions:")
+            print(f"Average reduction: {df['Reduction %'].mean():.2f}%")
+            print(f"Most recent reductions:")
             print(df.tail(5))
         else:
-            print("❌ No token reduction entries found")
+            print("No token reduction entries found")
     except Exception as e:
         print(f"Error reading token log file: {e}")
         # Show file contents
@@ -62,9 +62,9 @@ def check_vector_store():
             doc_count = len(data.get('documents', []))
             word_count = len(data.get('word_to_idx', {}))
             
-            print(f"✅ Successfully read vector store file")
-            print(f"📈 Number of documents: {doc_count}")
-            print(f"📈 Vocabulary size: {word_count}")
+            print(f"Successfully read vector store file")
+            print(f"Number of documents: {doc_count}")
+            print(f"Vocabulary size: {word_count}")
             
             # Count document types
             doc_types = {}
@@ -72,18 +72,18 @@ def check_vector_store():
                 doc_type = doc.get('metadata', {}).get('type', 'unknown')
                 doc_types[doc_type] = doc_types.get(doc_type, 0) + 1
             
-            print(f"📊 Document types:")
+            print(f"Document types:")
             for doc_type, count in doc_types.items():
                 print(f"  - {doc_type}: {count}")
             
             # Show sample documents
-            print(f"\n📄 Sample documents:")
+            print(f"\nSample documents:")
             for i, doc in enumerate(data.get('documents', [])[:3]):
                 doc_id = doc.get('doc_id', 'unknown')
                 content_preview = doc.get('content', '')[:100].replace('\n', ' ')
                 print(f"  {i+1}. {doc_id}: {content_preview}...")
     except Exception as e:
-        print(f"❌ Error reading vector store file: {e}")
+        print(f"Error reading vector store file: {e}")
     
     return True
 
@@ -93,12 +93,12 @@ def check_debug_logs():
     
     print(f"\n==== Debug Log Analysis ====")
     if not os.path.exists(debug_log_path):
-        print(f"❌ Debug log file does not exist: {debug_log_path}")
+        print(f"Debug log file does not exist: {debug_log_path}")
         return False
     
     # Check file size
     file_size = os.path.getsize(debug_log_path)
-    print(f"📊 Debug log file size: {file_size} bytes")
+    print(f"Debug log file size: {file_size} bytes")
     
     # Count interesting log entries
     try:
@@ -109,19 +109,19 @@ def check_debug_logs():
             token_count = content.count("Token reduction")
             error_count = content.count("ERROR")
             
-            print(f"📊 API intercepts: {intercept_count}")
-            print(f"📊 Message optimizations: {optimize_count}")
-            print(f"📊 Token reductions logged: {token_count}")
-            print(f"📊 Errors: {error_count}")
+            print(f"API intercepts: {intercept_count}")
+            print(f"Message optimizations: {optimize_count}")
+            print(f"Token reductions logged: {token_count}")
+            print(f"Errors: {error_count}")
             
             # Show recent errors if any
             if error_count > 0:
-                print(f"\n❌ Recent errors:")
+                print(f"\nRecent errors:")
                 error_lines = [line for line in content.split('\n') if "ERROR" in line]
                 for line in error_lines[-3:]:
                     print(f"  {line}")
     except Exception as e:
-        print(f"❌ Error reading debug log file: {e}")
+        print(f"Error reading debug log file: {e}")
     
     return True
 
@@ -154,9 +154,9 @@ def inject_test_data():
                 reduction = 5 + i * 3  # Increases from 5% to 32%
                 f.write(f"{timestamp},{reduction}\n")
         
-        print(f"✅ Added 10 test data points to token log for visualization")
+        print(f"Added 10 test data points to token log for visualization")
     except Exception as e:
-        print(f"❌ Error injecting test data: {e}")
+        print(f"Error injecting test data: {e}")
 
 if __name__ == "__main__":
     print("\n===== RAG System Diagnostics =====\n")
