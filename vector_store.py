@@ -145,6 +145,8 @@ class SimpleVectorStore:
         with torch.no_grad():
             outputs = self.model(**inputs)
         return outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
+
+    def add_document(self, doc_id, content, metadata):
         """Add a document to the vector store."""
         # Tokenize the content
         tokens = self.tokenize(content)

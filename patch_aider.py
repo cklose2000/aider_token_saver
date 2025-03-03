@@ -130,7 +130,6 @@ except Exception as e:
         def vectorize_messages(self, messages):
             """Vectorize each message content."""
             return [vectorize_text(m.get("content", "")) for m in messages]
-            return original_messages
 
 # Initialize OpenAI client
 client = OpenAI()
